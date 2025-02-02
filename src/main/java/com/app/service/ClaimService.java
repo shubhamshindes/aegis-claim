@@ -3,6 +3,7 @@ package com.app.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,52 +18,32 @@ public class ClaimService {
     @Autowired
     private ClaimRepository claimRepository;
 
-    public ClaimDTO createClaim(ClaimDTO claimDTO) {
-        // Map ClaimDTO to Entity and save it to the DB
-        Claim claim = new Claim();
-        claim.setClaimNumber(claimDTO.getClaimNumber());
-        claim.setDescription(claimDTO.getDescription());
-        claim.setFiledDate(claimDTO.getFiledDate());
-        claim.setPolicyId(claimDTO.getPolicyId());
-        claim.setProcessedDate(claimDTO.getProcessedDate());
-        claim.setStatus(claimDTO.getStatus());
+    @Autowired
+    private ModelMapper modelMapper;  // Inject ModelMapper
 
-        // Save the claim entity to the database
+    public ClaimDTO createClaim(ClaimDTO claimDTO) {
+        // Convert DTO to Entity
+        Claim claim = modelMapper.map(claimDTO, Claim.class);
+
+        // Save to DB
         Claim savedClaim = claimRepository.save(claim);
 
-        // Set the generated id in the ClaimDTO before returning it
-        claimDTO.setId(savedClaim.getId());
-
-        return claimDTO;  // Return the DTO with the id after creation
+        // Convert Entity back to DTO
+        return modelMapper.map(savedClaim, ClaimDTO.class);
     }
 
-
     public ClaimDTO getClaimById(Long id) {
-        Claim claim = claimRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Claim not found"));
-        ClaimDTO claimDTO = new ClaimDTO();
-        claimDTO.setId(claim.getId());
-        claimDTO.setClaimNumber(claim.getClaimNumber());
-        claimDTO.setDescription(claim.getDescription());
-        claimDTO.setFiledDate(claim.getFiledDate());
-        claimDTO.setProcessedDate(claim.getProcessedDate());
-        claimDTO.setStatus(claim.getStatus());
-        claimDTO.setPolicyId(claim.getPolicyId());
-        return claimDTO;
+        Claim claim = claimRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Claim not found"));
+
+        return modelMapper.map(claim, ClaimDTO.class);
     }
 
     public List<ClaimDTO> getClaimsByStatus(String status) {
         List<Claim> claims = claimRepository.findByStatus(status);
-        return claims.stream().map(claim -> {
-            ClaimDTO claimDTO = new ClaimDTO();
-            claimDTO.setId(claim.getId());
-            claimDTO.setClaimNumber(claim.getClaimNumber());
-            claimDTO.setDescription(claim.getDescription());
-            claimDTO.setFiledDate(claim.getFiledDate());
-            claimDTO.setProcessedDate(claim.getProcessedDate());
-            claimDTO.setStatus(claim.getStatus());
-            claimDTO.setPolicyId(claim.getPolicyId());
-            return claimDTO;
-        }).collect(Collectors.toList());
+
+        return claims.stream()
+                .map(claim -> modelMapper.map(claim, ClaimDTO.class))
+                .collect(Collectors.toList());
     }
 }
-
